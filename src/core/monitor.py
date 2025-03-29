@@ -57,4 +57,4 @@ class ScreenMonitor(QThread):
                 self.screenshot_taken.emit(filename)
                 self.last_image = current_image
             
-            time.sleep(0.1)  # Adjust monitoring frequency
+            time.sleep(0.5)  # Increased monitoring frequency delay to 0.5 seconds

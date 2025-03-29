@@ -32,8 +32,13 @@ def compare_images(img1, img2, threshold=0.95):
     if arr1.shape != arr2.shape:
         return True
     
-    diff = np.abs(arr1 - arr2)
-    max_diff = np.max(diff)
+    # Calculate Mean Squared Error (MSE)
+    err = np.sum((arr1.astype("float") - arr2.astype("float")) ** 2)
+    err /= float(arr1.shape[0] * arr1.shape[1] * arr1.shape[2]) # Divide by total number of pixel values (width * height * channels)
     
-    # If maximum difference is small, images are similar
-    return max_diff > (255 * (1 - threshold))
+    # Define an MSE threshold for difference (lower = more sensitive)
+    # Increased from 100 to 500 to make it less sensitive
+    mse_threshold = 500 
+    
+    # If MSE is above the threshold, images are considered different
+    return err > mse_threshold
