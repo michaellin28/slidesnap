@@ -16,7 +16,10 @@ def light_palette():
 
 def dark_palette():
     # Create a dark palette based on common dark theme colors
-x    palette.setColor(QPalette.ColorRole.Base, QColor(42, 42, 42))
+    palette = QPalette()
+    palette.setColor(QPalette.ColorRole.Window, QColor(53, 53, 53))
+    palette.setColor(QPalette.ColorRole.WindowText, QColor(255, 255, 255))
+    palette.setColor(QPalette.ColorRole.Base, QColor(42, 42, 42))
     palette.setColor(QPalette.ColorRole.AlternateBase, QColor(66, 66, 66))
     palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(255, 255, 220))
     palette.setColor(QPalette.ColorRole.ToolTipText, QColor(0, 0, 0))
