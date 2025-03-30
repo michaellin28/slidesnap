@@ -49,33 +49,16 @@ class RegionSelector(QDialog):
         # Reset composition mode
         painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
         
-        # Draw border with Mac-like appearance
-        painter.setPen(QColor(255, 255, 255))
-        painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.drawRect(int(region[0]), int(region[1]), int(region[2]), int(region[3]))
+        # --- Removed border drawing ---
+        # painter.setPen(QColor(255, 255, 255))
+        # painter.setBrush(Qt.BrushStyle.NoBrush)
+        # painter.drawRect(int(region[0]), int(region[1]), int(region[2]), int(region[3]))
         
-        # Draw corner handles
-        handle_size = 6
-        handle_color = QColor(255, 255, 255)
-        painter.setBrush(handle_color)
-        
-        # Draw the 8 handles - convert all coordinates to integers
-        # Top-left
-        painter.drawRect(int(region[0] - handle_size/2), int(region[1] - handle_size/2), handle_size, handle_size)
-        # Top-middle
-        painter.drawRect(int(region[0] + region[2]/2 - handle_size/2), int(region[1] - handle_size/2), handle_size, handle_size)
-        # Top-right
-        painter.drawRect(int(region[0] + region[2] - handle_size/2), int(region[1] - handle_size/2), handle_size, handle_size)
-        # Middle-left
-        painter.drawRect(int(region[0] - handle_size/2), int(region[1] + region[3]/2 - handle_size/2), handle_size, handle_size)
-        # Middle-right
-        painter.drawRect(int(region[0] + region[2] - handle_size/2), int(region[1] + region[3]/2 - handle_size/2), handle_size, handle_size)
-        # Bottom-left
-        painter.drawRect(int(region[0] - handle_size/2), int(region[1] + region[3] - handle_size/2), handle_size, handle_size)
-        # Bottom-middle
-        painter.drawRect(int(region[0] + region[2]/2 - handle_size/2), int(region[1] + region[3] - handle_size/2), handle_size, handle_size)
-        # Bottom-right
-        painter.drawRect(int(region[0] + region[2] - handle_size/2), int(region[1] + region[3] - handle_size/2), handle_size, handle_size)
+        # --- Removed handle drawing ---
+        # handle_size = 6
+        # handle_color = QColor(255, 255, 255)
+        # painter.setBrush(handle_color)
+        # ... (removed all handle drawRect calls) ...
         
         # Update info label with dimensions
         self.update_info_label(region)

@@ -5,40 +5,208 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QPushButton, QAp
                                QLabel, QSpinBox, QCheckBox, QFileDialog, QComboBox,
                                QHBoxLayout, QGroupBox, QProgressBar)
 from PyQt6.QtCore import Qt, QSettings, QTimer, QThread
-from PyQt6.QtGui import QPalette, QColor # Use QPalette for standard themes
 from .region_selector import RegionSelector
 from ..core.monitor import ScreenMonitor
 from ..core.pdf_compiler import PDFCompiler
 from ..core.ocr_processor import OCRProcessor
 
-# Define basic palettes
-def light_palette():
-    # Create a default palette and return it (usually sufficient for light mode)
-    return QPalette()
+# Define macOS-like stylesheets
+LIGHT_STYLESHEET = """
+QWidget {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f5f5f7;
+    color: #1d1d1f;
+}
+QMainWindow {
+    background-color: #f5f5f7;
+}
+QGroupBox {
+    background-color: #ffffff;
+    border: 1px solid #d2d2d7;
+    border-radius: 8px;
+    margin-top: 10px;
+    padding: 10px; /* Reduced top padding */
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    padding: 0 5px 0px 5px;
+    margin-left: 5px;
+    color: #6e6e73;
+    font-weight: normal;
+}
+QPushButton {
+    background-color: #ffffff;
+    border: 1px solid #d2d2d7;
+    padding: 5px 15px;
+    border-radius: 5px;
+    color: #007aff;
+    font-weight: normal;
+}
+QPushButton:hover {
+    background-color: #e9e9ed;
+}
+QPushButton:pressed {
+    background-color: #dcdce1;
+}
+QPushButton:disabled {
+    background-color: #f5f5f7;
+    color: #c6c6c8;
+    border-color: #e1e1e6;
+}
+QLabel {
+    background-color: transparent;
+    color: #1d1d1f;
+}
+QComboBox, QSpinBox {
+    background-color: #ffffff;
+    border: 1px solid #d2d2d7;
+    padding: 5px 8px;
+    border-radius: 5px; /* Explicitly ensure radius */
+    min-height: 22px;
+}
+QComboBox {
+    padding-left: 8px;
+}
+QComboBox::drop-down {
+    border: none;
+    padding-right: 8px;
+}
+QComboBox::down-arrow {
+    /* image: url(assets/down_arrow_light.png); */
+    width: 12px;
+    height: 12px;
+}
+QCheckBox {
+    spacing: 5px;
+}
+QCheckBox::indicator {
+    width: 16px;
+    height: 16px;
+}
+QCheckBox::indicator:unchecked {
+    border: 1px solid #c6c6c8;
+    background-color: #ffffff;
+    border-radius: 4px;
+}
+QCheckBox::indicator:checked {
+    background-color: #007aff;
+    border: 1px solid #007aff;
+    border-radius: 4px;
+    /* image: url(assets/checkmark_light.png); */
+}
+QProgressBar {
+    border: 1px solid #d2d2d7;
+    border-radius: 5px;
+    text-align: center;
+    color: #1d1d1f;
+    background-color: #e9e9ed;
+    height: 10px;
+}
+QProgressBar::chunk {
+    background-color: #007aff;
+    border-radius: 5px;
+}
+"""
 
-def dark_palette():
-    # Create a dark palette based on common dark theme colors
-    palette = QPalette()
-    # --- Corrected Indentation Start ---
-    palette.setColor(QPalette.ColorRole.Window, QColor(53, 53, 53))
-    palette.setColor(QPalette.ColorRole.WindowText, QColor(255, 255, 255))
-    palette.setColor(QPalette.ColorRole.Base, QColor(42, 42, 42))
-    palette.setColor(QPalette.ColorRole.AlternateBase, QColor(66, 66, 66))
-    palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(255, 255, 220))
-    palette.setColor(QPalette.ColorRole.ToolTipText, QColor(0, 0, 0))
-    palette.setColor(QPalette.ColorRole.Text, QColor(255, 255, 255))
-    palette.setColor(QPalette.ColorRole.Button, QColor(53, 53, 53))
-    palette.setColor(QPalette.ColorRole.ButtonText, QColor(255, 255, 255))
-    palette.setColor(QPalette.ColorRole.BrightText, QColor(255, 0, 0))
-    palette.setColor(QPalette.ColorRole.Link, QColor(42, 130, 218))
-    palette.setColor(QPalette.ColorRole.Highlight, QColor(42, 130, 218))
-    palette.setColor(QPalette.ColorRole.HighlightedText, QColor(255, 255, 255))
-    # Disabled states
-    palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.ButtonText, QColor(120, 120, 120))
-    palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.WindowText, QColor(120, 120, 120))
-    palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, QColor(120, 120, 120))
-    # --- Corrected Indentation End ---
-    return palette
+DARK_STYLESHEET = """
+QWidget {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #1c1c1e;
+    color: #ffffff;
+}
+QMainWindow {
+    background-color: #1c1c1e;
+}
+QGroupBox {
+    background-color: #2c2c2e;
+    border: 1px solid #3a3a3c;
+    border-radius: 8px;
+    margin-top: 10px;
+    padding: 10px; /* Reduced top padding */
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    padding: 0 5px 0px 5px;
+    margin-left: 5px;
+    color: #8e8e93;
+    font-weight: normal;
+}
+QPushButton {
+    background-color: #3a3a3c;
+    border: 1px solid #545458;
+    padding: 5px 15px;
+    border-radius: 5px;
+    color: #0a84ff;
+    font-weight: normal;
+}
+QPushButton:hover {
+    background-color: #4a4a4c;
+}
+QPushButton:pressed {
+    background-color: #5a5a5e;
+}
+QPushButton:disabled {
+    background-color: #2c2c2e;
+    color: #5a5a5e;
+    border-color: #3a3a3c;
+}
+QLabel {
+    background-color: transparent;
+    color: #ffffff;
+}
+QComboBox, QSpinBox {
+    background-color: #3a3a3c;
+    border: 1px solid #545458;
+    padding: 5px 8px;
+    border-radius: 5px; /* Explicitly ensure radius */
+    color: #ffffff;
+    min-height: 22px;
+}
+QComboBox {
+    padding-left: 8px;
+}
+QComboBox::drop-down {
+    border: none;
+    padding-right: 8px;
+}
+QComboBox::down-arrow {
+    /* image: url(assets/down_arrow_dark.png); */
+    width: 12px;
+    height: 12px;
+}
+QCheckBox {
+    spacing: 5px;
+}
+QCheckBox::indicator {
+    width: 16px;
+    height: 16px;
+}
+QCheckBox::indicator:unchecked {
+    border: 1px solid #545458;
+    background-color: #3a3a3c;
+    border-radius: 4px;
+}
+QCheckBox::indicator:checked {
+    background-color: #0a84ff;
+    border: 1px solid #0a84ff;
+    border-radius: 4px;
+    /* image: url(assets/checkmark_dark.png); */
+}
+QProgressBar {
+    border: 1px solid #3a3a3c;
+    border-radius: 5px;
+    text-align: center;
+    color: #ffffff;
+    background-color: #2c2c2e;
+    height: 10px;
+}
+QProgressBar::chunk {
+    background-color: #0a84ff;
+    border-radius: 5px;
+}
+"""
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -62,6 +230,7 @@ class MainWindow(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         layout = QVBoxLayout(central_widget)
+        layout.setSpacing(10) # Reduced overall spacing
 
         # Region selection
         region_group = QGroupBox("Region Selection")
@@ -100,9 +269,6 @@ class MainWindow(QMainWindow):
         pdf_group = QGroupBox("PDF Settings")
         pdf_layout = QVBoxLayout()
 
-        self.enable_pdf_cb = QCheckBox("Generate PDF after session")
-        self.enable_pdf_cb.setChecked(True)
-
         layout_selection = QHBoxLayout()
         layout_selection.addWidget(QLabel("Images per page:"))
         self.layout_combo = QComboBox()
@@ -117,7 +283,6 @@ class MainWindow(QMainWindow):
         pdf_output.addWidget(self.pdf_path_btn)
         pdf_output.addWidget(self.pdf_path_label)
 
-        pdf_layout.addWidget(self.enable_pdf_cb)
         pdf_layout.addLayout(layout_selection)
         pdf_layout.addLayout(pdf_output)
         pdf_group.setLayout(pdf_layout)
@@ -155,9 +320,9 @@ class MainWindow(QMainWindow):
             system_theme = darkdetect.theme()
             effective_theme = system_theme.lower() if system_theme else "light"
         if effective_theme == "dark":
-            app.setPalette(dark_palette())
+            app.setStyleSheet(DARK_STYLESHEET)
         else:
-            app.setPalette(light_palette())
+            app.setStyleSheet(LIGHT_STYLESHEET)
         self.settings.setValue('theme', theme_choice)
 
     def load_settings(self):
@@ -209,9 +374,9 @@ class MainWindow(QMainWindow):
             self.status_label.setText(f"Starting in {self.countdown_remaining} seconds...")
 
     def actually_start_monitoring(self):
+        images_per_page = int(self.layout_combo.currentText())
         self.monitor.start(
-            pdf_enabled=self.enable_pdf_cb.isChecked(),
-            images_per_page=int(self.layout_combo.currentText()),
+            images_per_page=images_per_page,
             pdf_directory=self.pdf_path_label.text()
         )
         self.start_btn.setEnabled(False)
@@ -223,7 +388,7 @@ class MainWindow(QMainWindow):
         captured_images = self.monitor.get_captured_images()
         self.monitor.stop()
 
-        if self.enable_pdf_cb.isChecked() and captured_images:
+        if captured_images:
             self.status_label.setText("Preparing PDF generation...")
             self.progress_bar.setValue(0)
             self.progress_bar.setVisible(True)
@@ -253,26 +418,21 @@ class MainWindow(QMainWindow):
             self.start_btn.setEnabled(True)
             self.stop_btn.setEnabled(False)
             self.select_region_btn.setEnabled(True)
-            self.status_label.setText("Monitoring stopped.")
+            self.status_label.setText("Monitoring stopped. No images captured.")
 
     def update_pdf_progress(self, value):
         self.progress_bar.setValue(value)
 
     def pdf_generation_finished(self, result_message):
-        # This slot runs in the main thread after PDFCompiler finishes
-        # Don't clear references here, rely on deleteLater connections
-
         if result_message.startswith("Error:"):
             self.progress_bar.setVisible(False)
             self.status_label.setText(result_message)
-            # Re-enable buttons if PDF generation failed
             self.start_btn.setEnabled(True)
             self.stop_btn.setEnabled(False)
             self.select_region_btn.setEnabled(True)
         else:
-            # PDF generated successfully, now start OCR
             self.status_label.setText("Performing OCR...")
-            self.progress_bar.setVisible(False) # Hide PDF progress bar
+            self.progress_bar.setVisible(False)
 
             try:
                 original_pdf_path = result_message.split("PDF generated: ", 1)[1]
@@ -299,16 +459,12 @@ class MainWindow(QMainWindow):
             self.ocr_thread.finished.connect(self.ocr_worker.deleteLater)
 
             self.ocr_thread.start()
-            # Buttons remain disabled until OCR finishes
 
     def ocr_finished(self, result_message):
-        """Slot called when OCR process is done."""
         self.status_label.setText(result_message)
-        # Re-enable buttons
         self.start_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
         self.select_region_btn.setEnabled(True)
-        # Don't clear references here, rely on deleteLater connections
 
     def closeEvent(self, event):
         self.monitor.stop()
