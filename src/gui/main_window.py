@@ -1,13 +1,15 @@
 import sys
+import os
 import darkdetect
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QPushButton, QApplication,
                                QLabel, QSpinBox, QCheckBox, QFileDialog, QComboBox,
                                QHBoxLayout, QGroupBox, QProgressBar)
 from PyQt6.QtCore import Qt, QSettings, QTimer, QThread
-from PyQt6.QtGui import QPalette, QColor # Re-added for theme palettes
+from PyQt6.QtGui import QPalette, QColor # Use QPalette for standard themes
 from .region_selector import RegionSelector
 from ..core.monitor import ScreenMonitor
 from ..core.pdf_compiler import PDFCompiler
+from ..core.ocr_processor import OCRProcessor
 
 # Define basic palettes
 def light_palette():
@@ -17,6 +19,7 @@ def light_palette():
 def dark_palette():
     # Create a dark palette based on common dark theme colors
     palette = QPalette()
+    # --- Corrected Indentation Start ---
     palette.setColor(QPalette.ColorRole.Window, QColor(53, 53, 53))
     palette.setColor(QPalette.ColorRole.WindowText, QColor(255, 255, 255))
     palette.setColor(QPalette.ColorRole.Base, QColor(42, 42, 42))
@@ -34,6 +37,7 @@ def dark_palette():
     palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.ButtonText, QColor(120, 120, 120))
     palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.WindowText, QColor(120, 120, 120))
     palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, QColor(120, 120, 120))
+    # --- Corrected Indentation End ---
     return palette
 
 class MainWindow(QMainWindow):
@@ -42,18 +46,16 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Screen Capture to PDF")
         self.setMinimumWidth(400)
 
-        # Make window stay on top, use standard frame
         self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
 
-        # Initialize components
         self.monitor = ScreenMonitor()
         self.settings = QSettings('ScreenCapturePDF', 'Settings')
         self.pdf_thread = None
         self.pdf_compiler_worker = None
+        self.ocr_thread = None
+        self.ocr_worker = None
 
-        # Setup UI
         self.setup_ui()
-        # Load settings and apply initial theme *after* UI is set up
         self.load_settings()
 
     def setup_ui(self):
@@ -78,7 +80,7 @@ class MainWindow(QMainWindow):
         theme_layout.addWidget(QLabel("Theme:"))
         self.theme_combo = QComboBox()
         self.theme_combo.addItems(["System", "Light", "Dark"])
-        self.theme_combo.currentTextChanged.connect(self.apply_theme) # Connect signal
+        self.theme_combo.currentTextChanged.connect(self.apply_theme)
         theme_layout.addWidget(self.theme_combo)
         theme_group.setLayout(theme_layout)
         layout.addWidget(theme_group)
@@ -89,7 +91,7 @@ class MainWindow(QMainWindow):
         timer_layout.addWidget(QLabel("Delay before recording (seconds):"))
         self.timer_spinbox = QSpinBox()
         self.timer_spinbox.setRange(0, 10)
-        self.timer_spinbox.setValue(3)  # Default 3 seconds
+        self.timer_spinbox.setValue(3)
         timer_layout.addWidget(self.timer_spinbox)
         timer_group.setLayout(timer_layout)
         layout.addWidget(timer_group)
@@ -105,7 +107,7 @@ class MainWindow(QMainWindow):
         layout_selection.addWidget(QLabel("Images per page:"))
         self.layout_combo = QComboBox()
         self.layout_combo.addItems(["1", "2", "4"])
-        self.layout_combo.setCurrentText("4") # Default to 4 images per page
+        self.layout_combo.setCurrentText("4")
         layout_selection.addWidget(self.layout_combo)
 
         pdf_output = QHBoxLayout()
@@ -141,49 +143,33 @@ class MainWindow(QMainWindow):
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
-        self.progress_bar.setVisible(False) # Initially hidden
+        self.progress_bar.setVisible(False)
         status_layout.addWidget(self.progress_bar)
         layout.addLayout(status_layout)
 
     def apply_theme(self, theme_choice):
-        """Applies the selected theme (Light/Dark/System) using QPalette."""
         app = QApplication.instance()
-        if not app: # Should not happen in a running app
-            return
-            
+        if not app: return
         effective_theme = theme_choice.lower()
-
         if effective_theme == "system":
             system_theme = darkdetect.theme()
-            if system_theme: # darkdetect returns None if it can't detect
-                effective_theme = system_theme.lower()
-            else:
-                effective_theme = "light" # Default to light if detection fails
-
+            effective_theme = system_theme.lower() if system_theme else "light"
         if effective_theme == "dark":
             app.setPalette(dark_palette())
-        else: # Light or undetected system
-            app.setPalette(light_palette()) # Use default light palette
-
-        # Save the user's *choice* (System, Light, Dark), not the effective theme
+        else:
+            app.setPalette(light_palette())
         self.settings.setValue('theme', theme_choice)
 
     def load_settings(self):
         pdf_dir = self.settings.value('pdf_directory', 'Default')
         self.pdf_path_label.setText(pdf_dir)
-
-        # Load theme setting
-        saved_theme = self.settings.value('theme', 'System') # Default to System
-        # Set combo box value without triggering apply_theme again
+        saved_theme = self.settings.value('theme', 'System')
         self.theme_combo.blockSignals(True)
         self.theme_combo.setCurrentText(saved_theme)
         self.theme_combo.blockSignals(False)
-        # Apply the theme based on the loaded setting
         self.apply_theme(saved_theme)
 
-
     def select_region(self):
-        # No need to hide/show main window
         selector = RegionSelector()
         if selector.exec():
             region = selector.get_region()
@@ -198,20 +184,15 @@ class MainWindow(QMainWindow):
 
     def start_monitoring(self):
         if not self.monitor.has_region():
-            # Automatically open region selector if none is selected
             self.status_label.setText("Please select a region.")
             self.select_region()
-            # If a region was selected after the dialog, proceed. Otherwise, stop here.
-            if not self.monitor.has_region():
-                return
+            if not self.monitor.has_region(): return
 
         delay_seconds = self.timer_spinbox.value()
-
         if delay_seconds > 0:
             self.status_label.setText(f"Starting in {delay_seconds} seconds...")
             self.start_btn.setEnabled(False)
             self.select_region_btn.setEnabled(False)
-
             self.countdown_timer = QTimer(self)
             self.countdown_timer.timeout.connect(self.update_countdown)
             self.countdown_remaining = delay_seconds
@@ -233,7 +214,6 @@ class MainWindow(QMainWindow):
             images_per_page=int(self.layout_combo.currentText()),
             pdf_directory=self.pdf_path_label.text()
         )
-
         self.start_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
         self.select_region_btn.setEnabled(False)
@@ -260,18 +240,15 @@ class MainWindow(QMainWindow):
             )
             self.pdf_compiler_worker.moveToThread(self.pdf_thread)
 
-            # Connect signals for thread management and UI updates
             self.pdf_thread.started.connect(self.pdf_compiler_worker.run_generation)
             self.pdf_compiler_worker.progress_updated.connect(self.update_pdf_progress)
-            self.pdf_compiler_worker.finished.connect(self.pdf_generation_finished) # Slot to update UI
-            self.pdf_compiler_worker.finished.connect(self.pdf_thread.quit) # Tell thread's event loop to exit
-            # Use thread's finished signal for safe cleanup AFTER its event loop stops
+            self.pdf_compiler_worker.finished.connect(self.pdf_generation_finished)
+            self.pdf_compiler_worker.finished.connect(self.pdf_thread.quit)
             self.pdf_thread.finished.connect(self.pdf_thread.deleteLater)
             self.pdf_thread.finished.connect(self.pdf_compiler_worker.deleteLater)
 
             self.pdf_thread.start()
             self.status_label.setText("Generating PDF...")
-
         else:
             self.start_btn.setEnabled(True)
             self.stop_btn.setEnabled(False)
@@ -279,31 +256,68 @@ class MainWindow(QMainWindow):
             self.status_label.setText("Monitoring stopped.")
 
     def update_pdf_progress(self, value):
-        """Slot to update the progress bar."""
         self.progress_bar.setValue(value)
 
     def pdf_generation_finished(self, result_message):
-        """Slot called when PDF generation WORK is done (runs in main thread)."""
-        self.progress_bar.setVisible(False)
-        self.status_label.setText(result_message)
+        # This slot runs in the main thread after PDFCompiler finishes
+        # Don't clear references here, rely on deleteLater connections
 
+        if result_message.startswith("Error:"):
+            self.progress_bar.setVisible(False)
+            self.status_label.setText(result_message)
+            # Re-enable buttons if PDF generation failed
+            self.start_btn.setEnabled(True)
+            self.stop_btn.setEnabled(False)
+            self.select_region_btn.setEnabled(True)
+        else:
+            # PDF generated successfully, now start OCR
+            self.status_label.setText("Performing OCR...")
+            self.progress_bar.setVisible(False) # Hide PDF progress bar
+
+            try:
+                original_pdf_path = result_message.split("PDF generated: ", 1)[1]
+            except IndexError:
+                self.status_label.setText("Error: Could not parse PDF path for OCR.")
+                self.start_btn.setEnabled(True)
+                self.stop_btn.setEnabled(False)
+                self.select_region_btn.setEnabled(True)
+                return
+
+            pdf_dir = os.path.dirname(original_pdf_path)
+            pdf_filename = os.path.basename(original_pdf_path)
+            ocr_output_path = os.path.join(pdf_dir, f"OCR_{pdf_filename}")
+
+            self.ocr_thread = QThread()
+            self.ocr_worker = OCRProcessor()
+            self.ocr_worker.set_params(original_pdf_path, ocr_output_path)
+            self.ocr_worker.moveToThread(self.ocr_thread)
+
+            self.ocr_thread.started.connect(self.ocr_worker.run_ocr)
+            self.ocr_worker.finished.connect(self.ocr_finished)
+            self.ocr_worker.finished.connect(self.ocr_thread.quit)
+            self.ocr_thread.finished.connect(self.ocr_thread.deleteLater)
+            self.ocr_thread.finished.connect(self.ocr_worker.deleteLater)
+
+            self.ocr_thread.start()
+            # Buttons remain disabled until OCR finishes
+
+    def ocr_finished(self, result_message):
+        """Slot called when OCR process is done."""
+        self.status_label.setText(result_message)
+        # Re-enable buttons
         self.start_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
         self.select_region_btn.setEnabled(True)
-
-        # Clear Python references - thread/worker will be deleted later by connections
-        # DO NOT call wait() here as it blocks the main thread!
-        self.pdf_thread = None
-        self.pdf_compiler_worker = None
+        # Don't clear references here, rely on deleteLater connections
 
     def closeEvent(self, event):
-        # Ensure monitor and potentially PDF thread are stopped on close
         self.monitor.stop()
         if self.pdf_thread and self.pdf_thread.isRunning():
             print("Warning: Closing while PDF generation is in progress.")
-            # Force quit and wait briefly
             self.pdf_thread.quit()
-            self.pdf_thread.wait(500) # Wait 0.5 sec for thread to finish quitting
+            self.pdf_thread.wait(500)
+        if self.ocr_thread and self.ocr_thread.isRunning():
+            print("Warning: Closing while OCR is in progress.")
+            self.ocr_thread.quit()
+            self.ocr_thread.wait(500)
         event.accept()
-
-    # --- Removed change_opacity, mousePressEvent, mouseMoveEvent ---

@@ -7,6 +7,10 @@ from src.gui.main_window import MainWindow
 def main():
     app = QApplication(sys.argv)
     
+    # Set Application Name (for Dock, etc.)
+    app.setApplicationName("SlideSnap")
+    app.setApplicationDisplayName("SlideSnap") # Optional, often same as name
+    
     # Set application icon
     script_dir = os.path.dirname(os.path.realpath(__file__))
     icon_path = os.path.join(script_dir, 'assets', 'screenpdficon.png')
