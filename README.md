@@ -4,6 +4,8 @@ A desktop application designed to automatically capture screenshots of a changin
 
 ![App Icon](assets/screenpdficon.png)
 
+<img width="407" alt="image" src="https://github.com/user-attachments/assets/9fae1630-b27e-4f86-bca1-0e3d3860e98a" />
+
 ## Features
 
 *   **Region Selection:** Select any rectangular area on your screen to monitor.
