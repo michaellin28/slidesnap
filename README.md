@@ -1,4 +1,4 @@
-# Screen Capture to PDF (SlideSnap)
+# SlideSnap
 
 A desktop application designed to automatically capture screenshots of a changing screen region and compile them into a PDF. Ideal for capturing presentation slides, tutorials, or any dynamic content.
 
